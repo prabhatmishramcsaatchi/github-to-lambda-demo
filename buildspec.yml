@@ -3,12 +3,27 @@ phases:
   install:
     runtime-versions:
       python: 3.8
+    commands:
+      - echo "Installing dependencies..."
+      - pip install -r requirements.txt -t lib
   build:
     commands:
+      - echo "Packaging dependencies..."
+      - mkdir -p python
+      - cp -r lib/* python/
+      - zip -r dependencies_layer.zip python/
       - echo "Zipping Lambda function code..."
       - zip -r deployment_package.zip lambda_function.py
   post_build:
     commands:
+      - echo "Uploading dependencies to S3..."
+      - aws s3 cp dependencies_layer.zip s3://wikitablescrapexample/lambda_update_key/dependencies_layer.zip
+      - echo "Uploading Lambda function code to S3..."
+      - aws s3 cp deployment_package.zip s3://wikitablescrapexample/lambda_update_key/deployment_package.zip
       - echo "Updating Lambda function code..."
       - aws lambda update-function-code --function-name github-to-lambda-demo --zip-file fileb://deployment_package.zip
       - echo "DONE!!"
+artifacts:
+  files:
+    - dependencies_layer.zip
+    - deployment_package.zip
